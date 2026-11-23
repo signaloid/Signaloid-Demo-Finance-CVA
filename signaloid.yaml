@@ -1,13 +1,13 @@
 MinimumCore:
       Class: C0Pro
-      Microarchitecture: Athens
-      CorrelationTracking: Autocorrelation
+      Microarchitecture: Rome
+      DependencyTracking: Basic
       MemorySize: 256000
       Precision: 64
 
 TraceVariables:
     - File: "main.c"
-      LineNumber: 47
+      LineNumber: 52
       Expression: "outputVariables[0]"
 
 BenchmarkingVariables:

@@ -1,5 +1,5 @@
 /*
- *	Copyright (c) 2026, Signaloid.
+ *	Copyright (c) 2023-2026, Signaloid.
  *
  *	Permission is hereby granted, free of charge, to any person obtaining a copy
  *	of this software and associated documentation files (the "Software"), to deal
@@ -170,20 +170,6 @@ cvaHwZeroBond(
 	double  T,
 	double  x);
 
-/**
- *	@brief	Standard deviation of the OU state x(t) starting from x(0) = 0.
- *
- *	@return	sqrt(sigma^2 (1 - exp(-2 a t)) / (2 a)).
- */
-double
-cvaHwStateStddev(double meanReversion, double volatility, double t);
-
-/**
- *	@brief	Conditional standard deviation of x(t + dt) given x(t).
- */
-double
-cvaHwConditionalStddev(double meanReversion, double volatility, double dt);
-
 /* ========================================================================
  *	Swap pricing
  * ======================================================================== */
@@ -230,12 +216,6 @@ cvaPortfolioValue(
  */
 double
 cvaSurvivalProbability(double t);
-
-/**
- *	@brief	Default probability in the interval (t1, t2].
- */
-double
-cvaDefaultProbability(double t1, double t2);
 
 /*
  *	The per-path CVA accumulation has two implementations selected at

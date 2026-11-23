@@ -1,5 +1,5 @@
 /*
- *	Copyright (c) 2026, Signaloid.
+ *	Copyright (c) 2023-2026, Signaloid.
  *
  *	Permission is hereby granted, free of charge, to any person obtaining a copy
  *	of this software and associated documentation files (the "Software"), to deal
@@ -90,15 +90,4 @@ cvaSurvivalProbability(double t)
 	cumulativeHazard += kCvaHazardRates[nextIdx] * remainder;
 
 	return exp(-cumulativeHazard);
-}
-
-double
-cvaDefaultProbability(double t1, double t2)
-{
-	if (t2 <= t1)
-	{
-		return 0.0;
-	}
-
-	return cvaSurvivalProbability(t1) - cvaSurvivalProbability(t2);
 }

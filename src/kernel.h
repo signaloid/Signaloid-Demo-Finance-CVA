@@ -22,43 +22,57 @@
 
 #pragma once
 
-#include "utilities.h"
+#include <stddef.h>
+#include <stdbool.h>
 #include "cva-config.h"
+
+/**
+ *	@brief	Inputs consumed by the kernels. The command-line parser and
+ *		`main()` (input CSV, read before timing starts) populate it, so
+ *		the kernels do not depend on the command-line argument struct.
+ */
+typedef struct
+{
+	double  inputVariables[kCvaInputIndexMax];      /**< The input variables (the volatility, from `-x` or the input CSV). */
+	bool    isInputVariableSet[kCvaInputIndexMax];  /**< Whether each input variable was given on the command line. */
+	bool    isInputFromFileEnabled;                 /**< Whether the input variables were read from an input CSV (`-i`). */
+} KernelParameters;
 
 /**
  *	@brief	UxHw calculation kernel. Computes the CVA in a single distributional
  *		pass (see `cva-uxhw.c`) and writes it into `outputVariables` and
- *		`monteCarloOutputSamples[0]`.
+ *		`monteCarloOutputSamples[0]`. If the volatility was given (on the
+ *		command line or in an input file), `parameters->inputVariables[kCvaInputIndexVolatility]`
+ *		is used, else the volatility is the uncertain model input.
  *
- *	@param	arguments		: Pointer to command line arguments struct.
- *	@param	inputVariables		: The input variables (resolved volatility).
+ *	@param	parameters		: The kernel inputs.
  *	@param	outputVariables		: Array of size `kCvaOutputIndexMax` to fill.
  *	@param	monteCarloOutputSamples	: Single-element array for the distributional result.
  *	@return	double			: The value of the selected output (the CVA).
  */
 double
 calculateOutputUxHw(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables,
-	double *                monteCarloOutputSamples);
+	const KernelParameters *    parameters,
+	double *                    outputVariables,
+	double *                    monteCarloOutputSamples);
 
 /**
- *	@brief	Monte Carlo calculation kernel. Runs
- *		`arguments->common.numberOfMonteCarloIterations` independent scalar
- *		short-rate paths (see `cva-monte-carlo.c`) into
+ *	@brief	Monte Carlo calculation kernel. Runs `numberOfMonteCarloIterations`
+ *		independent scalar short-rate paths (see `cva-monte-carlo.c`) into
  *		`monteCarloOutputSamples`, then writes their mean (the converged CVA)
- *		into `outputVariables`.
+ *		into `outputVariables`. If the volatility was given (on the command line or in an input
+ *		file), `parameters->inputVariables[kCvaInputIndexVolatility]` is
+ *		used, else each iteration draws its own volatility.
  *
- *	@param	arguments		: Pointer to command line arguments struct.
- *	@param	inputVariables		: The input variables (resolved volatility).
- *	@param	outputVariables		: Array of size `kCvaOutputIndexMax` to fill.
- *	@param	monteCarloOutputSamples	: Array of `numberOfMonteCarloIterations` doubles.
- *	@return	double			: The value of the selected output (the CVA).
+ *	@param	parameters			: The kernel inputs.
+ *	@param	numberOfMonteCarloIterations	: Number of Monte Carlo iterations.
+ *	@param	outputVariables			: Array of size `kCvaOutputIndexMax` to fill.
+ *	@param	monteCarloOutputSamples		: Array of `numberOfMonteCarloIterations` doubles.
+ *	@return	double				: The value of the selected output (the CVA).
  */
 double
 calculateOutputMonteCarlo(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables,
-	double *                monteCarloOutputSamples);
+	const KernelParameters *    parameters,
+	size_t                      numberOfMonteCarloIterations,
+	double *                    outputVariables,
+	double *                    monteCarloOutputSamples);

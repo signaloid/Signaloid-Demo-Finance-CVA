@@ -1,10 +1,11 @@
 # Input Files
 
-## input.csv
-This CSV file contains samples for the two inputs that the template C demo has
-(see `src/main.c`). The C demo reads these samples to generate the two input
-distributions when one provides the command-line argument `-i input.csv`.
+## `input.csv`
+This CSV file holds the one input of the demo, the Hull-White volatility. Its header is `volatility` and its value is `0.0075`.
 
-**Important Note:** The headers in the CSV file (in this case `firstInputVariableName`
-and`secondInputVariableName`) should match the `expectedInputHeaders`
-specified in `src/main.c` (the order of headers is not important).
+Pass the file with `-i inputs/input.csv`. The header must match `expectedInputHeaders` in `src/main.c`.
+
+## Options
+- `-x` or `--volatility` sets a fixed volatility. It must be a positive number.
+- Without `-x` or `-i`, the volatility is `Gauss(0.0075, 0.0005)`.
+- Monte Carlo mode (`-M`) does not support `-i`. Use `-x` instead.

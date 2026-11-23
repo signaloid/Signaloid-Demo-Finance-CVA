@@ -1,5 +1,5 @@
 /*
- *	Copyright (c) 2024-2026, Signaloid.
+ *	Copyright (c) 2023-2026, Signaloid.
  *
  *	Permission is hereby granted, free of charge, to any person obtaining a copy
  *	of this software and associated documentation files (the "Software"), to deal
@@ -27,13 +27,12 @@
 #include <inttypes.h>
 #include "common.h"
 #include "cva-config.h"
+#include "kernel.h"
 
 typedef struct
 {
 	CommonCommandLineArguments  common;
-
-	double                      inputVariables[kCvaInputIndexMax];
-	bool                        isInputVariableSet[kCvaInputIndexMax];
+	KernelParameters            kernelParameters;
 } CommandLineArguments;
 
 /**
@@ -43,7 +42,20 @@ void
 printUsage(void);
 
 /**
+ *	@brief	Set the default values for the command line arguments.
+ *
+ *	@param	arguments	: Pointer to struct to store arguments.
+ *	@return			: `kCommonConstantReturnTypeSuccess` if successful, else `kCommonConstantReturnTypeError`.
+ */
+CommonConstantReturnType
+setDefaultCommandLineArguments(CommandLineArguments * arguments);
+
+/**
  *	@brief	Get command line arguments.
+ *
+ *		In the no-OS build there is no command line: `argc` and `argv` are
+ *		ignored and the hard-coded configuration set by
+ *		`setNoOSCommandLineArguments()` is used instead.
  *
  *	@param	argc		: argument count from `main()`.
  *	@param	argv		: argument vector from `main()`.
@@ -52,3 +64,20 @@ printUsage(void);
  */
 CommonConstantReturnType
 getCommandLineArguments(int argc, char *  argv[], CommandLineArguments *  arguments);
+
+#ifdef NO_OS_AVAILABLE
+
+/**
+ *	@brief	Set the hard-coded command line arguments used by the no-OS build.
+ *
+ *		This is the single place to change the configuration that no-OS
+ *		runs use, since those runs cannot be given command line arguments.
+ *		Fields not set here keep the values from
+ *		`setDefaultCommandLineArguments()`.
+ *
+ *	@param	arguments	: Pointer to struct to store arguments.
+ *	@return			: `kCommonConstantReturnTypeSuccess` if successful, else `kCommonConstantReturnTypeError`.
+ */
+CommonConstantReturnType
+setNoOSCommandLineArguments(CommandLineArguments * arguments);
+#endif
