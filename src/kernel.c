@@ -23,7 +23,6 @@
 #include <stddef.h>
 #include <uxhw.h>
 #include "kernel.h"
-#include "utilities.h"
 #include "common.h"
 #include "cva-config.h"
 #include "cva-uxhw.h"
@@ -72,13 +71,12 @@ static const CvaSwap kCvaPortfolio[kCvaNumPortfolioSwaps] = {
  */
 static double
 cvaResolveVolatility(
-	const CommandLineArguments *    arguments,
-	const double *                  inputVariables)
+	const KernelParameters * parameters)
 {
-	if (arguments->isInputVariableSet[kCvaInputIndexVolatility] ||
-	    arguments->common.isInputFromFileEnabled)
+	if (parameters->isInputVariableSet[kCvaInputIndexVolatility] ||
+	    parameters->isInputFromFileEnabled)
 	{
-		return inputVariables[kCvaInputIndexVolatility];
+		return parameters->inputVariables[kCvaInputIndexVolatility];
 	}
 
 	return UxHwDoubleGaussDist(kCvaDefaultVolatility, kCvaDefaultVolatilityStdDev);
@@ -86,12 +84,11 @@ cvaResolveVolatility(
 
 double
 calculateOutputUxHw(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables,
-	double *                monteCarloOutputSamples)
+	const KernelParameters *    parameters,
+	double *                    outputVariables,
+	double *                    monteCarloOutputSamples)
 {
-	double  volatility  = cvaResolveVolatility(arguments, inputVariables);
+	double  volatility  = cvaResolveVolatility(parameters);
 	double  cva         = cvaCalculatePathCvaUxHw(
 		kCvaPortfolio,
 		kCvaNumPortfolioSwaps,
@@ -106,17 +103,16 @@ calculateOutputUxHw(
 
 double
 calculateOutputMonteCarlo(
-	CommandLineArguments *  arguments,
-	double *                inputVariables,
-	double *                outputVariables,
-	double *                monteCarloOutputSamples)
+	const KernelParameters *    parameters,
+	size_t                      numberOfMonteCarloIterations,
+	double *                    outputVariables,
+	double *                    monteCarloOutputSamples)
 {
-	size_t          numberOfMonteCarloIterations = arguments->common.numberOfMonteCarloIterations;
 	MeanAndVariance meanAndVariance;
 
 	for (size_t ii = 0; ii < numberOfMonteCarloIterations; ii++)
 	{
-		double volatility = cvaResolveVolatility(arguments, inputVariables);
+		double volatility = cvaResolveVolatility(parameters);
 
 		monteCarloOutputSamples[ii] = cvaCalculatePathCvaMonteCarlo(
 			kCvaPortfolio,

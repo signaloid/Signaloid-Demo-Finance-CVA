@@ -5,7 +5,8 @@
 #	Copyright (c) 2026, Signaloid.
 #
 #	Targets:
-#	  build-local        - Build for native execution with GSL compat layer
+#	  local-build        - Build for native execution with GSL compat layer
+#	  build-local        - Alias of local-build
 #	  run-local          - Build and run Monte Carlo for the CVA output
 #	  clean              - Remove build artifacts
 #
@@ -37,25 +38,24 @@ SRCDIR = src
 BUILDDIR = build
 TARGET = demo-native-mc
 
-SOURCES = \
-	$(SRCDIR)/main.c \
-	$(SRCDIR)/kernel.c \
-	$(SRCDIR)/common.c \
-	$(SRCDIR)/utilities.c \
-	$(SRCDIR)/uxhw.c \
-	$(SRCDIR)/cva-hw.c \
-	$(SRCDIR)/cva-pricing.c \
-	$(SRCDIR)/cva-cva.c \
-	$(SRCDIR)/cva-uxhw.c \
-	$(SRCDIR)/cva-monte-carlo.c
+#
+#	`src/config.mk` is the source list shared with the Signaloid cloud
+#	build. It omits `uxhw.c`, because the cloud compiler provides the
+#	UxHw API natively. The native build compiles the shim in explicitly.
+#
+include src/config.mk
+
+SOURCES := $(addprefix $(SRCDIR)/,$(SOURCES)) $(SRCDIR)/uxhw.c
 
 OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(BUILDDIR)/%.o)
 
 .PHONY: all build-local local-build run-local local-run clean
 
-all: build-local
+all: local-build
 
-build-local: $(TARGET)
+local-build: $(TARGET)
+
+build-local: local-build
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -66,14 +66,11 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
-run-local: build-local
+run-local: local-build
 	@echo "=== CVA (S=0, σ=0.0075, 1500 paths to match notebook) ==="
 	./$(TARGET) -M 1500 -S 0 -x 0.0075 -T
-
-local-build: build-local
 
 local-run: run-local
 
 clean:
 	rm -rf $(BUILDDIR) $(TARGET)
-

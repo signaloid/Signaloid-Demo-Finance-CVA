@@ -1,5 +1,5 @@
 /*
- *	Copyright (c) 2024-2026, Signaloid.
+ *	Copyright (c) 2023-2026, Signaloid.
  *
  *	Permission is hereby granted, free of charge, to any person obtaining a copy
  *	of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,12 @@
 #include "kernel.h"
 #include "cva-config.h"
 
+#ifdef NO_OS_AVAILABLE
+
+void
+returnZeroNoOS(void);
+#endif
+
 int
 main(int argc, char *  argv[])
 {
@@ -40,11 +46,10 @@ main(int argc, char *  argv[])
 		"Computes the Credit Valuation Adjustment (CVA) for a netting "
 		"set of two vanilla interest rate swaps under the Hull-White / "
 		"GSR short-rate model.";
-	double          inputVariables[kCvaInputIndexMax];
 	const char *    expectedInputHeaders[kCvaInputIndexMax] = {
 		"volatility"
 	};
-	double          outputVariables[kCvaOutputIndexMax];
+	double          outputVariables[kCvaOutputIndexMax] = { 0 };
 	const char *    outputVariableNames[kCvaOutputIndexMax] = {
 		"CVA"
 	};
@@ -61,7 +66,6 @@ main(int argc, char *  argv[])
 	kOutputVariableTypeIndex    outputVariableTypes[kCvaOutputIndexMax] = {
 		[kCvaOutputIndexCva] = kOutputVariableTypeScalar
 	};
-	double                      output = 0.0;
 	double *                    monteCarloOutputSamples = NULL;
 	clock_t                     start                   = 0;
 	clock_t                     end                     = 0;
@@ -76,22 +80,17 @@ main(int argc, char *  argv[])
 	}
 
 	/*
-	 *	Seed the input variables from the command line (the `-x` value is 0.0
-	 *	and unused unless `isInputVariableSet` is true), then override from the
-	 *	input CSV if `-i` was supplied. The kernels use these values via
-	 *	`cvaResolveVolatility`.
+	 *	The input variables hold the command-line values (the `-x` value is
+	 *	0.0 and unused unless `isInputVariableSet` is true). Override them
+	 *	from the input CSV if `-i` was supplied, before timing starts. The
+	 *	kernels use these values via `cvaResolveVolatility`.
 	 */
-	for (size_t ii = 0; ii < kCvaInputIndexMax; ii++)
-	{
-		inputVariables[ii] = arguments.inputVariables[ii];
-	}
-
 	if (arguments.common.isInputFromFileEnabled)
 	{
 		if (readInputDoubleDistributionsFromCSV(
 				arguments.common.inputFilePath,
 				expectedInputHeaders,
-				inputVariables,
+				arguments.kernelParameters.inputVariables,
 				kCvaInputIndexMax
 		))
 		{
@@ -113,7 +112,7 @@ main(int argc, char *  argv[])
 	);
 
 	/*
-	 *	Start timing if timing is enabled or in benchmarking mode.
+	 *	Start timing if timing is enabled.
 	 */
 	if (arguments.common.isTimingEnabled)
 	{
@@ -125,57 +124,52 @@ main(int argc, char *  argv[])
 	 */
 	if (arguments.common.isMonteCarloMode)
 	{
-		output = calculateOutputMonteCarlo(&arguments, inputVariables, outputVariables, monteCarloOutputSamples);
+		calculateOutputMonteCarlo(
+			&arguments.kernelParameters,
+			arguments.common.numberOfMonteCarloIterations,
+			outputVariables,
+			monteCarloOutputSamples
+		);
 	}
 	else
 	{
-		output = calculateOutputUxHw(&arguments, inputVariables, outputVariables, monteCarloOutputSamples);
+		calculateOutputUxHw(&arguments.kernelParameters, outputVariables, monteCarloOutputSamples);
 	}
-	(void) output;
 
-	if ((arguments.common.isTimingEnabled) || (arguments.common.isBenchmarkingMode))
+	if (arguments.common.isTimingEnabled)
 	{
 		end = clock();
 		cpuTimeUsedInSeconds = ((double) (end - start)) / CLOCKS_PER_SEC;
 	}
 
-	/*
-	 *	The CVA is a scalar. Present a copy of the arguments with Monte Carlo
-	 *	disabled and iterations = 1 so the common print routines take their
-	 *	scalar code paths (printing just `CVA: <value>`) instead of computing
-	 *	distribution statistics.
-	 */
-	bool isSelectedOutputScalar =
-		(arguments.common.outputSelect != kCvaOutputIndexMax) &&
-		(outputVariableTypes[arguments.common.outputSelect] == kOutputVariableTypeScalar);
-	CommonCommandLineArguments printArguments = arguments.common;
-
-	if (arguments.common.isMonteCarloMode && isSelectedOutputScalar)
-	{
-		printArguments.isMonteCarloMode             = false;
-		printArguments.numberOfMonteCarloIterations = 1;
-	}
+	const bool isScalarOutputSelected = isSelectedOutputScalar(
+		&arguments.common,
+		outputVariableTypes,
+		kCvaOutputIndexMax
+	);
 
 	if (arguments.common.isOutputJSONMode)
 	{
 		printJSONFormattedOutput(
-			&printArguments,
+			&arguments.common,
 			monteCarloOutputSamples,
 			outputVariables,
 			outputVariableNames,
 			kCvaOutputIndexMax,
-			applicationDescription
+			applicationDescription,
+			outputVariableTypes
 		);
 	}
 	else
 	{
 		printHumanConsumableOutput(
-			&printArguments,
+			&arguments.common,
 			kCvaOutputIndexMax,
 			outputVariables,
 			outputVariableNames,
 			outputVariableDescriptions,
-			monteCarloOutputSamples
+			monteCarloOutputSamples,
+			outputVariableTypes
 		);
 	}
 
@@ -204,7 +198,7 @@ main(int argc, char *  argv[])
 	 */
 	if (arguments.common.isMonteCarloMode)
 	{
-		size_t samplesToSave = isSelectedOutputScalar
+		size_t samplesToSave = isScalarOutputSelected
 		            ? 1
 		            : arguments.common.numberOfMonteCarloIterations;
 
@@ -217,6 +211,11 @@ main(int argc, char *  argv[])
 
 	free(monteCarloOutputSamples);
 	monteCarloOutputSamples = NULL;
+#ifdef NO_OS_AVAILABLE
+	returnZeroNoOS();
+#else
 
 	return EXIT_SUCCESS;
+
+#endif
 }

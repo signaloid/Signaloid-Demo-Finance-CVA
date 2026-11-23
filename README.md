@@ -45,7 +45,7 @@ where $V(t, x)$ is the netting-set mark-to-market value at time $t$.
 ### Features
 
 This application computes:
-- **Credit Valuation Adjustment (`-S 0`)**: the unilateral CVA of the netting set, reported in currency units. The Hull-White volatility $\sigma$ is treated as the uncertain model input (default `Gauss(0.0075, 0.0005)`), and the CVA is reported as the expectation of the resulting exposure distribution — a single particle value.
+- **Credit Valuation Adjustment (`-S 0`)**: the unilateral CVA of the netting set, reported in currency units. The Hull-White volatility $\sigma$ is the model input and carries a distribution (default `Gauss(0.0075, 0.0005)`), and the CVA is reported as the expectation of the resulting exposure distribution — a single particle value.
 
 ## Getting started
 
@@ -65,8 +65,7 @@ git submodule update --init
 
 To run this application on the [Signaloid Cloud Developer Platform](https://signaloid.io), you need a Signaloid account. You can sign up using [this link](https://get.signaloid.io).
 
-Once you have an account, click the "add to signaloid.io" button at the top of this README to connect this repository to the platform and run the application. On the platform the application performs a single distributional pass, so you do not need to set `-M` greater than 1. The core's uncertainty tracking provides the converged CVA in one execution.
-
+Once you have an account, click the "add to signaloid.io" button at the top of this README to connect this repository to the platform and run the application. On the platform the application performs a single distributional pass, so you do not need to set `-M` greater than 1. The core's distribution arithmetic provides the converged CVA in one execution.
 
 ## Running locally
 
@@ -96,7 +95,7 @@ on Intel (`/usr/local`), so no further configuration is needed on macOS.
 
 From the repository root, build the native Monte Carlo binary with the provided Makefile:
 ```bash
-make build-local            # produces ./demo-native-mc
+make local-build            # produces ./demo-native-mc
 ```
 
 ### Execution
@@ -124,7 +123,6 @@ cat data.out
 | `-S` | `--select-output` | int | 0 | Select which output to compute (only `0`, the CVA, is defined) |
 | `-M` | `--multiple-executions` | int | 1 | Number of Monte Carlo iterations (only needed for local execution) |
 | `-T` | `--time` | flag | false | Timing mode: time and print the kernel execution |
-| `-b` | `--benchmarking` | flag | false | Enable benchmarking output format |
 | `-j` | `--json` | flag | false | Output results in JSON format |
 | `-v` | `--verbose` | flag | false | Verbose mode (not used by this demo) |
 | `-h` | `--help` | flag | false | Display the help message |
@@ -133,15 +131,15 @@ cat data.out
 
 | Short | Long | Type | Default | Description |
 |-------|------|------|---------|-------------|
-| `-x` | `--volatility` | double | `Gauss(0.0075, 0.0005)` | Hull-White short-rate volatility $\sigma$. When omitted, $\sigma$ is treated as an uncertain (Gaussian) input. When set, $\sigma$ is fixed to the given value. |
+| `-x` | `--volatility` | double | `Gauss(0.0075, 0.0005)` | Hull-White short-rate volatility $\sigma$. When omitted, $\sigma$ is a Gaussian distribution. When set, $\sigma$ is fixed to the given value. |
 
-**Note**: When running on Signaloid's platform you do not need to set `-M` greater than 1. The platform's uncertainty tracking provides the converged CVA in a single execution.
+**Note**: When running on Signaloid's platform you do not need to set `-M` greater than 1. The platform's distribution arithmetic provides the converged CVA in a single execution.
 
 ## Output
 
 ### `-S 0`: Credit valuation adjustment
 
-Computes the unilateral CVA of the two-swap netting set. The result is a single scalar in currency units (EUR), recovered as the expectation of the accumulated discounted positive-exposure distribution. With the default uncertain volatility input, the demo reports a CVA that matches the reference notebook's **586.18 EUR** to within that notebook's own Monte Carlo noise, whose per-1500-path standard error is about 18 EUR.
+Computes the unilateral CVA of the two-swap netting set. The result is a single scalar in currency units (EUR), recovered as the expectation of the accumulated discounted positive-exposure distribution. With the default volatility distribution, the demo reports a CVA that matches the reference notebook's **586.18 EUR** to within that notebook's own Monte Carlo noise, whose per-1500-path standard error is about 18 EUR.
 
 Human-readable output:
 ```
@@ -160,14 +158,14 @@ src/
  ├── cva-config.h        # model constants and declarations
  ├── cva-hw.c            # Hull-White zero-bond and OU helpers (shared)
  ├── cva-pricing.c       # vanilla IR-swap pricing (shared)
- ├── cva-cva.c           # hazard-rate curve, survival / default probability (shared)
+ ├── cva-cva.c           # hazard-rate curve, survival probability (shared)
  ├── cva-uxhw.c/.h       # UxHw single distributional-pass CVA kernel
  ├── cva-monte-carlo.c/.h # native Monte Carlo CVA kernel (fmax exposure)
  ├── utilities.c/.h      # CLI argument parsing
  ├── common.*            # CSV / JSON helpers (submodule symlink)
  └── uxhw.*              # GSL-backed compat layer for the native build (submodule symlink)
 
-Makefile                 # build-local, run-local, scce-build, scce-run
+Makefile                 # local-build, run-local, clean
 signaloid.yaml           # SCCE configuration
 notebook.nb              # original QuantLib notebook
 inputs/input.csv         # example volatility input

@@ -3,16 +3,31 @@ on:
   pull_request:
 
 jobs:
+
   check-submodules:
     runs-on: ubuntu-latest
     steps:
+    - name: Clean runner directory
+      run: |
+        ls -la ./
+        rm -rf ./* || true
+        rm -rf ./.??* || true
+        ls -la ./
+
+    # The repository itself is checked out with the default GITHUB_TOKEN.
+    # Its credentials are not persisted, so they are not sent to the
+    # submodule repositories, which the next step reaches with the PAT.
     - name: Checkout repository
       uses: actions/checkout@v6
       with:
-        submodules: recursive
+        persist-credentials: false
 
+    # GIT_CONFIG_* rewrites signaloid URLs to carry CI_HELPER_PAT for this
+    # step only. Nothing is written to git config, so the token does not
+    # outlive the job on the self-hosted runner.
     - name: Check common and compat submodules up to date
       run: |
+        git submodule update --init --recursive
         git clean -fdx
         git submodule foreach --recursive git clean -fdx
         git submodule foreach 'case "$sm_path" in submodules/common|submodules/compat) git fetch -fup origin "+refs/heads/*:refs/remotes/origin/*" ;; esac'
@@ -27,6 +42,7 @@ jobs:
           exit 1
         fi
 
+
   build-and-run-native-monte-carlo:
     runs-on: ubuntu-latest
     needs: check-submodules
@@ -35,12 +51,19 @@ jobs:
       matrix:
         M: [1, 100]
         S: [0]
+        volatility: [0.005, 0.0075, 0.01]
 
     steps:
+    # See check-submodules for why the checkout and the submodules are
+    # fetched with different credentials.
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        submodules: true
+        persist-credentials: false
+
+    - name: Checkout submodules
+      run: |
+        git submodule update --init
 
     - name: Install dependencies
       run: |
@@ -54,4 +77,5 @@ jobs:
     - name: Run application
       run: |
         ./demo-native-mc \
-          -M ${{ matrix.M }} -S ${{ matrix.S }}
+          -M ${{ matrix.M }} -S ${{ matrix.S }} \
+          --volatility ${{ matrix.volatility }}

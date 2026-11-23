@@ -1,5 +1,5 @@
 /*
- *	Copyright (c) 2026, Signaloid.
+ *	Copyright (c) 2023-2026, Signaloid.
  *
  *	Permission is hereby granted, free of charge, to any person obtaining a copy
  *	of this software and associated documentation files (the "Software"), to deal
@@ -89,49 +89,6 @@ cvaHwAlpha(double meanReversion, double volatility, double t)
 		oneMinusExpAt * oneMinusExpAt;
 
 	return kCvaFlatRate + convexity;
-}
-
-double
-cvaHwStateStddev(double meanReversion, double volatility, double t)
-{
-	if (t <= 0.0)
-	{
-		return 0.0;
-	}
-
-	if (meanReversion == 0.0)
-	{
-		return volatility * sqrt(t);
-	}
-
-	double variance =
-		(volatility * volatility) *
-		(1.0 - exp(-2.0 * meanReversion * t)) /
-		(2.0 * meanReversion);
-
-	return sqrt(variance);
-}
-
-
-double
-cvaHwConditionalStddev(double meanReversion, double volatility, double dt)
-{
-	if (dt <= 0.0)
-	{
-		return 0.0;
-	}
-
-	if (meanReversion == 0.0)
-	{
-		return volatility * sqrt(dt);
-	}
-
-	double variance =
-		(volatility * volatility) *
-		(1.0 - exp(-2.0 * meanReversion * dt)) /
-		(2.0 * meanReversion);
-
-	return sqrt(variance);
 }
 
 /*
